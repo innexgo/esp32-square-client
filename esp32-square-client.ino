@@ -1,41 +1,11 @@
 #include <Arduino.h>
-#include <SPI.h>
-#include <stdint.h>
 #include <MFRC522.h>
-#include <WiFi.h>
+#include <HTTPClient.h>
 
-#define reset_pin 16
-#define status_pin_1 18
-#define status_pin_2 22
-#define buzzer_pin 17
-#define IRQ_pin 13
-#define SS_pin 26
-#define SCK_pin 25
-#define MOSI_pin 33
-#define MISO_pin 32
+#include "constants.h"
 
-MFRC522 mfrc522(SS_pin, reset_pin);
-
-void setup() {
-  Serial.begin(9600);
-  while (!Serial);
-  Serial.print("Hello There");
-  pinMode(reset_pin, OUTPUT);
-  digitalWrite(reset_pin, HIGH);
-  pinMode(status_pin_1, OUTPUT); 
-  pinMode(status_pin_2, OUTPUT);
-  pinMode(buzzer_pin, OUTPUT);
-  pinMode(IRQ_pin, INPUT);
-  
-  pinMode(SS_pin, OUTPUT);
-  digitalWrite(SS_pin, HIGH);
-  pinMode(SCK_pin, OUTPUT);
-  pinMode(MOSI_pin, OUTPUT);
-  pinMode(MISO_pin, INPUT);
-  
-  SPI.begin(SCK_pin,MISO_pin,MOSI_pin,SS_pin);
-  mfrc522.PCD_Init();
-}
+#include "square_mfrc522.h"
+#include "square_wifi.h"
 
 void beep(int totalwidth, int cycwidth) {
   int cycles = totalwidth/cycwidth;
@@ -52,12 +22,65 @@ void beepDown() {
   beep(100000, 2000);
 }
 
-
 void beepUp() {
   beep(100000, 2000);
   beep(100000, 1000);
 }
 
+void beepError() {
+  beep(100000, 1000);
+  beep(100000, 2000);
+  beep(100000, 1000);
+}
+
+void sendEncounter(char* hostname, char* apiKey, long studentId, long locationId) {
+  char url_buffer[1024];
+  sprintf(
+    url_buffer, 
+    (
+        "%s"
+        "/api/misc/attends/"
+        "?manual=false"
+        "&apiKey=%s"
+        "&locationId=%d"
+        "&studentId=%d"
+    ),
+    hostname, apiKey, studentId, locationId
+  );
+
+  HTTPClient http;
+
+  http.begin(url_buffer);
+
+  // Send HTTP GET request
+  int httpResponseCode = http.GET();
+
+  Serial.println(httpResponseCode);
+  Serial.println(http.getString());
+}
+
+
+MFRC522 mfrc522;
+
+void setup() {
+  // set up pins
+  pinMode(reset_pin, OUTPUT);
+  digitalWrite(reset_pin, HIGH);
+  pinMode(status_pin_1, OUTPUT); 
+  pinMode(status_pin_2, OUTPUT);
+  pinMode(buzzer_pin, OUTPUT);
+
+  // begin serial
+  Serial.begin(9600);
+  while (!Serial);
+  Serial.println("Initialized Serial");
+
+  // setup mfrc522
+  mfrc522 = setupMfrc522();
+
+  // setup wifi
+  connectWiFi();
+}
 
 void loop() {  
   
