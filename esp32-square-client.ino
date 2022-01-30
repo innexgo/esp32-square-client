@@ -1,6 +1,5 @@
 #include <Arduino.h>
 #include <MFRC522.h>
-#include <HTTPClient.h>
 
 #include "constants.h"
 
@@ -28,36 +27,13 @@ void beepUp() {
 }
 
 void beepError() {
-  beep(100000, 1000);
   beep(100000, 2000);
-  beep(100000, 1000);
+  delayMicroseconds(100000);
+  beep(100000, 2000);
+  delayMicroseconds(100000);
+  beep(100000, 2000);
 }
 
-void sendEncounter(char* hostname, char* apiKey, long studentId, long locationId) {
-  char url_buffer[1024];
-  sprintf(
-    url_buffer, 
-    (
-        "%s"
-        "/api/misc/attends/"
-        "?manual=false"
-        "&apiKey=%s"
-        "&locationId=%d"
-        "&studentId=%d"
-    ),
-    hostname, apiKey, studentId, locationId
-  );
-
-  HTTPClient http;
-
-  http.begin(url_buffer);
-
-  // Send HTTP GET request
-  int httpResponseCode = http.GET();
-
-  Serial.println(httpResponseCode);
-  Serial.println(http.getString());
-}
 
 
 MFRC522 mfrc522;
@@ -112,8 +88,17 @@ void loop() {
 
   mfrc522.PICC_DumpMifareUltralightToSerial(); // This is a modifier dump just change the for circle to < 232 instead of < 16 in order to see all the pages on NTAG216.
   
-  beepUp();
+  bool signedin;
+  bool success = sendEncounter(30094614, &signedin); 
+  if(success) {
+    if(signedin) {
+      beepUp();
+    } else {
+      beepDown();
+    }
+  } else {
+    beepError();
+  }
   
-
-  delay(300);
+  delay(200);
 }
