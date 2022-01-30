@@ -1,5 +1,7 @@
 #include <Arduino.h>
 #include <MFRC522.h>
+#include <stdint.h>
+#include <endian.h>
 
 #include "constants.h"
 
@@ -77,19 +79,34 @@ void loop() {
   Serial.println(mfrc522.PCD_NTAG216_AUTH(&PSWBuff[0], pACK)); // Request authentification if return STATUS_OK we are good.
 
   //Print PassWordACK
+  Serial.print("PassWordACK: ");
   Serial.print(pACK[0], HEX);
   Serial.println(pACK[1], HEX);
 
-  byte WBuff[] = {0x00, 0x00, 0x00, 0x04};
-  byte RBuff[18];
 
-  //Serial.print("CHG BLK: ");
-  //Serial.println(mfrc522.MIFARE_Ultralight_Write(0xE3, WBuff, 4));  // How to write to a page.
+
+  // Read from sector 10 
+  byte RBuff[16];
+
+  for(int a = 0; a < 4; a++) {
+    byte bufferSize = 16;
+    mfrc522.MIFARE_Read(a*4, RBuff, &bufferSize);
+
+    printf("%02X:%02X:%02X:%02X\n", RBuff[0], RBuff[1], RBuff[2], RBuff[3]);
+    printf("%02X:%02X:%02X:%02X\n", RBuff[4], RBuff[5], RBuff[6], RBuff[7]);
+    printf("%02X:%02X:%02X:%02X\n", RBuff[8], RBuff[9], RBuff[10], RBuff[11]);
+    printf("%02X:%02X:%02X:%02X\n", RBuff[12], RBuff[13], RBuff[14], RBuff[15]);
+
+    //Serial.print(RBuff[i]);
+  
+  }
+
+  uint32_t studentId = le32toh(*(uint32_t*)RBuff);
 
   mfrc522.PICC_DumpMifareUltralightToSerial(); // This is a modifier dump just change the for circle to < 232 instead of < 16 in order to see all the pages on NTAG216.
   
   bool signedin;
-  bool success = sendEncounter(30094614, &signedin); 
+  bool success = sendEncounter(studentId, &signedin); 
   if(success) {
     if(signedin) {
       beepUp();
