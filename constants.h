@@ -14,8 +14,7 @@
 #define MISO_pin 32
 
 
-#define wifi_ssid "alpha"
-#define wifi_password "braincontrol"
-
+#define wifi_ssid "ESUHSD-Cart"
+#define wifi_password "cart234cart"
 
 #endif
