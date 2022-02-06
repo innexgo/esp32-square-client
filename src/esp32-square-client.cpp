@@ -1,7 +1,6 @@
 #include <Arduino.h>
 #include <MFRC522.h>
 #include <stdint.h>
-#include <endian.h>
 
 #include "constants.h"
 
@@ -38,16 +37,17 @@ void beepError() {
   beep(100000, 2000);
 }
 
-void ByteArrayLE_to_uint32 (const uint8_t* byteArray, uint32_t* x) {
+uint32_t ByteArrayLE_to_uint32 (const uint8_t* byteArray) {
   /* casts -before- shifting are necessary to prevent integer promotion 
      and to make the code portable no matter integer size: */
 
-  *x = (uint32_t)byteArray[0] <<  0 | 
+  uint32_t x = (uint32_t)byteArray[0] <<  0 | 
        (uint32_t)byteArray[1] <<  8 | 
        (uint32_t)byteArray[2] << 16 | 
        (uint32_t)byteArray[3] << 24;
 
   printf("%02X:%02X:%02X:%02X\n", byteArray[0], byteArray[1], byteArray[2], byteArray[3]);
+  return x;
 }
 
 
@@ -68,6 +68,15 @@ void setup() {
 
   // setup mfrc522
   mfrc522 = setupMfrc522();
+
+  // while(true) {
+  //   digitalWrite(status_pin_1, HIGH);
+  //   digitalWrite(status_pin_2, HIGH);
+  //   delay(100);
+  //   digitalWrite(status_pin_1, LOW);
+  //   digitalWrite(status_pin_2, LOW);
+  //   delay(100);
+  // }
 
   // setup wifi
   connectWiFi();
@@ -118,8 +127,7 @@ void loop() {
   byte SIDBuff[4];
   memset(SIDBuff, 0, 4*sizeof(byte));
   memcpy(SIDBuff, &RBuff[8], sizeof(SIDBuff));
-  uint32_t studentId;
-  ByteArrayLE_to_uint32(SIDBuff, &studentId);//le32toh(*(uint32_t*)RBuff);
+  uint32_t studentId = ByteArrayLE_to_uint32(SIDBuff);//le32toh(*(uint32_t*)RBuff);
 
   //mfrc522.PICC_DumpMifareUltralightToSerial(); // This is a modifier dump just change the for circle to < 232 instead of < 16 in order to see all the pages on NTAG216.
 
