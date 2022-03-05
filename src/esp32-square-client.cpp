@@ -3,6 +3,7 @@
 #include <stdint.h>
 
 #include "constants.h"
+#include "endian.h"
 
 #include "square_mfrc522.h"
 #include "square_wifi.h"
@@ -37,21 +38,18 @@ void beepError() {
   beep(100000, 2000);
 }
 
-uint32_t ByteArrayLE_to_uint32 (const uint8_t* byteArray) {
-  /* casts -before- shifting are necessary to prevent integer promotion 
-     and to make the code portable no matter integer size: */
-
-  uint32_t x = (uint32_t)byteArray[0] <<  0 | 
-       (uint32_t)byteArray[1] <<  8 | 
-       (uint32_t)byteArray[2] << 16 | 
-       (uint32_t)byteArray[3] << 24;
-
-  printf("%02X:%02X:%02X:%02X\n", byteArray[0], byteArray[1], byteArray[2], byteArray[3]);
-  return x;
+void longToByteArray(long val, byte* buf)
+{
+    for (int i = 0; i < 16; i++)
+    {
+        buf[i] = ((val >> (8 * i)) & 0XFF);
+    }
 }
 
-
 MFRC522 mfrc522;
+byte RBuff[18];
+byte WBuff[16];
+byte bufferSize = sizeof(RBuff);
 
 void setup() {
   // set up pins
@@ -63,6 +61,7 @@ void setup() {
 
   // begin serial
   Serial.begin(9600);
+  Serial.setTimeout(600000);
   while (!Serial);
   Serial.println("Initialized Serial");
 
@@ -85,17 +84,46 @@ void setup() {
 void loop() {  
   
   // Reset the loop if no new card present on the sensor/reader. This saves the entire process when idle.
-  if ( ! mfrc522.PICC_IsNewCardPresent()) {
+  // if ( ! mfrc522.PICC_IsNewCardPresent()) {
+  //   return;
+  // }
+
+  // Select one of the cards
+  // if ( ! mfrc522.PICC_ReadCardSerial()) {
+  //   return;
+  // }
+  
+
+  Serial.print("Scan Barcode: ");
+  while (Serial.available() == 0) {
+  }
+
+  String inputString = Serial.readStringUntil('\n');
+  Serial.println("Recieved: " + inputString);
+  long scannedId = inputString.toInt();
+  if (scannedId == 0) {
+    Serial.print("Invalid Input, scan again.\n");
+    beepError();
     return;
   }
 
-  // Select one of the cards
-  if ( ! mfrc522.PICC_ReadCardSerial()) {
-    return;
-  }
+  uint32_t scanned_le = htole32(scannedId);
+  uint32_t* scanned_le_addr = &scanned_le;
+  // clear write buffer
+  memset(WBuff, 0, 16*sizeof(byte));
+  memcpy(WBuff, (byte*)scanned_le_addr, 16);
+  Serial.printf("%02X, %02X, %02X, %02X\n", WBuff[0], WBuff[1], WBuff[2], WBuff[3]);
 
   byte PSWBuff[] = {0xFF, 0xFF, 0xFF, 0xFF}; // 32 bit password default FFFFFFFF.
   byte pACK[] = {0, 0}; // 16 bit password ACK returned by the NFCtag.
+  
+  Serial.print("Scan Card...\n");
+  while (!mfrc522.PICC_IsNewCardPresent()) {
+    delay(10);
+  } // wait for card
+  while (!mfrc522.PICC_ReadCardSerial()) {
+    delay(10);
+  }
 
   Serial.print("Auth: ");
   Serial.println(mfrc522.PCD_NTAG216_AUTH(&PSWBuff[0], pACK)); // Request authentification if return STATUS_OK we are good.
@@ -105,43 +133,34 @@ void loop() {
   Serial.print(pACK[0], HEX);
   Serial.println(pACK[1], HEX);
 
-
-
-  // Read from sector 10 
-  byte RBuff[18];
-  memset(RBuff, 0, 18*sizeof(byte)); 
-  byte bufferSize = sizeof(RBuff);
-
-  // for(int a = 0; a < 4; a++) {
+  // Read from sector 10
+  memset(RBuff, 0, 18*sizeof(byte)); //clear buffer
   mfrc522.MIFARE_Read(2*4, RBuff, &bufferSize);
+  printf("Original: %02X:%02X:%02X:%02X\n", RBuff[8], RBuff[9], RBuff[10], RBuff[11]);
 
-  printf("%02X:%02X:%02X:%02X\n", RBuff[0], RBuff[1], RBuff[2], RBuff[3]);
-  printf("%02X:%02X:%02X:%02X\n", RBuff[4], RBuff[5], RBuff[6], RBuff[7]);
-  printf("%02X:%02X:%02X:%02X\n", RBuff[8], RBuff[9], RBuff[10], RBuff[11]);
-  printf("%02X:%02X:%02X:%02X\n", RBuff[12], RBuff[13], RBuff[14], RBuff[15]);
+  mfrc522.MIFARE_Write(10, WBuff, 16);
 
-    //Serial.print(RBuff[i]);
-  
-  // }
+  memset(RBuff, 0, 18*sizeof(byte)); //clear buffer
+  mfrc522.MIFARE_Read(2*4, RBuff, &bufferSize);
+  printf("Written: %02X:%02X:%02X:%02X\n", RBuff[8], RBuff[9], RBuff[10], RBuff[11]);
 
-  byte SIDBuff[4];
-  memset(SIDBuff, 0, 4*sizeof(byte));
-  memcpy(SIDBuff, &RBuff[8], sizeof(SIDBuff));
-  uint32_t studentId = ByteArrayLE_to_uint32(SIDBuff);//le32toh(*(uint32_t*)RBuff);
+  uint32_t studentId = le32toh(*(uint32_t*)(RBuff+8));
+  printf("Parsed Value: %i\n", studentId);
+  beepUp();
 
   //mfrc522.PICC_DumpMifareUltralightToSerial(); // This is a modifier dump just change the for circle to < 232 instead of < 16 in order to see all the pages on NTAG216.
 
-  bool signedin;
-  bool success = sendEncounter(studentId, &signedin); 
-  if(success) {
-    if(signedin) {
-      beepUp();
-    } else {
-      beepDown();
-    }
-  } else {
-    beepError();
-  }
+  // bool signedin;
+  // bool success = sendEncounter(studentId, &signedin); 
+  // if(success) {
+  //   if(signedin) {
+  //     beepUp();
+  //   } else {
+  //     beepDown();
+  //   }
+  // } else {
+  //   beepError();
+  // }
   
   delay(200);
 }
