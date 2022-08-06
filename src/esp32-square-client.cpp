@@ -12,11 +12,11 @@ void beep(int totalwidth, int cycwidth) {
   int cycles = totalwidth/cycwidth;
   for(int i = 0; i < cycles; i++) {
 
-    // TEMP disable beeps.
-    // digitalWrite(buzzer_pin, HIGH);
-    // delayMicroseconds(cycwidth/2);
-    // digitalWrite(buzzer_pin, LOW);
-    // delayMicroseconds(cycwidth/2);
+    //TEMP disable beeps.
+    digitalWrite(buzzer_pin, HIGH);
+    delayMicroseconds(cycwidth/2);
+    digitalWrite(buzzer_pin, LOW);
+    delayMicroseconds(cycwidth/2);
   } 
 }
 
@@ -118,11 +118,15 @@ void loop() {
   byte pACK[] = {0, 0}; // 16 bit password ACK returned by the NFCtag.
   
   Serial.print("Scan Card...\n");
-  while (!mfrc522.PICC_IsNewCardPresent()) {
-    delay(10);
-  } // wait for card
-  while (!mfrc522.PICC_ReadCardSerial()) {
-    delay(10);
+  // wait for card
+  while(true) {
+    if(!mfrc522.PICC_IsNewCardPresent()) {
+      continue;
+    }
+    if(!mfrc522.PICC_ReadCardSerial()) {
+      continue;
+    }
+    break;
   }
 
   Serial.print("Auth: ");
