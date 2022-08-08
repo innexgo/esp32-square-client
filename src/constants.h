@@ -14,7 +14,7 @@
 #define MISO_pin 32
 
 
-#define wifi_ssid "ESUHSD-Cart"
-#define wifi_password "cart234cart"
+#define wifi_ssid "Full Bars"
+#define wifi_password "SNUsnu9D"
 
 #endif

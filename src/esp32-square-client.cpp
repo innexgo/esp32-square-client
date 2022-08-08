@@ -47,9 +47,6 @@ void longToByteArray(long val, byte* buf)
 }
 
 MFRC522 mfrc522;
-byte RBuff[18];
-byte WBuff[16];
-byte bufferSize = sizeof(RBuff);
 
 void setup() {
   // set up pins
@@ -82,7 +79,9 @@ void setup() {
 }
 
 void loop() {  
-  
+  byte RBuff[18];
+  byte WBuff[16];
+  byte bufferSize = sizeof(RBuff);
   // Reset the loop if no new card present on the sensor/reader. This saves the entire process when idle.
   // if ( ! mfrc522.PICC_IsNewCardPresent()) {
   //   return;
@@ -142,16 +141,23 @@ void loop() {
   mfrc522.MIFARE_Read(2*4, RBuff, &bufferSize);
   printf("Original: %02X:%02X:%02X:%02X\n", RBuff[8], RBuff[9], RBuff[10], RBuff[11]);
 
-  mfrc522.MIFARE_Write(10, WBuff, 16);
+  MFRC522::StatusCode writeStatus = mfrc522.MIFARE_Write(10, WBuff, 16);
 
   memset(RBuff, 0, 18*sizeof(byte)); //clear buffer
-  mfrc522.MIFARE_Read(2*4, RBuff, &bufferSize);
+  MFRC522::StatusCode readStatus = mfrc522.MIFARE_Read(2*4, RBuff, &bufferSize);
   printf("Written: %02X:%02X:%02X:%02X\n", RBuff[8], RBuff[9], RBuff[10], RBuff[11]);
 
   uint32_t studentId = le32toh(*(uint32_t*)(RBuff+8));
   printf("Parsed Value: %i\n", studentId);
-  beepUp();
-
+  printf("Write: %s Read: %s\n", MFRC522::GetStatusCodeName(writeStatus), MFRC522::GetStatusCodeName(readStatus));
+  printf("Read Buffer: %i\n", mfrc522.PCD_ReadRegister(MFRC522::FIFOLevelReg));
+  printf("Read Buffer Size: %i\n", *&bufferSize);
+  
+  if (scanned_le == studentId) {
+    beepUp();
+  } else {
+    beepError();
+  }
   //mfrc522.PICC_DumpMifareUltralightToSerial(); // This is a modifier dump just change the for circle to < 232 instead of < 16 in order to see all the pages on NTAG216.
 
   // bool signedin;
