@@ -66,7 +66,7 @@ StaticJsonDocument<1024> respDoc;
 
 bool sendEncounter(uint32_t studentId, bool* signedin) {
   const char* apiKey = "testlmao";
-  const uint32_t locationId = 184;
+  const uint32_t locationId = 204;
   
   char url_buffer[1024];
   sprintf(
