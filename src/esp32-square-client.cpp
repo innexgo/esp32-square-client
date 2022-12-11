@@ -147,6 +147,8 @@ void loop() {
     } else {
       beepDown();
     }
+    // delay so user doesn't accidentally rescan
+    delay(1000);
   } else {
     beepError();
   }
