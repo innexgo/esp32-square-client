@@ -75,7 +75,7 @@ void setup() {
   // }
 
   // setup wifi
-  connectWiFi();
+  //connectWiFi();
 }
 
 void loop() {  
