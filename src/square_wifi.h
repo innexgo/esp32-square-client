@@ -64,9 +64,9 @@ const char* hostname = "https://sths.hours.innexgo.com";
 
 StaticJsonDocument<1024> respDoc;
 
-bool sendEncounter(uint32_t studentId, bool* signedin) {
+bool sendEncounter(uint32_t studentId, bool* signin) {
   const char* apiKey = "testlmao";
-  const uint32_t locationId = 204;
+  const uint32_t locationId = 218;
   
   char url_buffer[1024];
   sprintf(
@@ -113,7 +113,7 @@ bool sendEncounter(uint32_t studentId, bool* signedin) {
     return false;
   }
 
-  *signedin = !respDoc["complete"];
+  *signin = respDoc["outEncounter"].isNull();
 
   return true;
 }

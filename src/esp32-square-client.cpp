@@ -139,10 +139,10 @@ void loop() {
 
   //mfrc522.PICC_DumpMifareUltralightToSerial(); // This is a modifier dump just change the for circle to < 232 instead of < 16 in order to see all the pages on NTAG216.
 
-  bool signedin;
-  bool success = sendEncounter(studentId, &signedin);
+  bool signin;
+  bool success = sendEncounter(studentId, &signin);
   if(success) {
-    if(signedin) {
+    if(signin) {
       beepUp();
     } else {
       beepDown();
