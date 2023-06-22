@@ -2,8 +2,8 @@
 #define CONSTANTS_H
 
 #define status_pin_1 18
-#define status_pin_2 22
-#define buzzer_pin 19
+#define status_pin_2 19
+#define buzzer_pin 25
 
 #define serial_rxd1 16
 #define serial_txd1 17
